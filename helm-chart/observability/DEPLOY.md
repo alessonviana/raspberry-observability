@@ -14,6 +14,7 @@ Make sure you have:
 ```bash
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add metallb https://metallb.github.io/metallb
 helm repo update
 ```
 
@@ -174,6 +175,53 @@ After deployment, the following services will be available in the `observability
 
 All services are configured for internal communication via Kubernetes DNS.
 
+## MetalLB Configuration
+
+MetalLB is automatically deployed and configured to provide LoadBalancer services on your local network.
+
+### Network Configuration
+
+- **Local Network**: 192.168.2.0/24
+- **IP Range**: 192.168.2.100 - 192.168.2.250
+- **Controller IP**: 192.168.2.110
+- **Namespace**: `metallb`
+
+### How It Works
+
+MetalLB assigns IP addresses from the configured range to services with `type: LoadBalancer`. This allows services to be accessible from your local network without needing a cloud provider's load balancer.
+
+### Verify MetalLB
+
+After deployment, check MetalLB status:
+
+```bash
+# Check MetalLB pods
+kubectl get pods -n metallb
+
+# Check IPAddressPool
+kubectl get ipaddresspool -n metallb
+
+# Check L2Advertisement
+kubectl get l2advertisement -n metallb
+```
+
+### Using LoadBalancer Services
+
+To expose a service via MetalLB, set its type to `LoadBalancer`:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+```
+
+MetalLB will automatically assign an IP from the configured range (192.168.2.100-250).
+
 ## Cloudflare Tunnel Setup (Optional)
 
 To expose services externally via Cloudflare Tunnel:
@@ -235,3 +283,14 @@ Once configured, you can access your services via the public hostnames configure
 - Alertmanager: `https://alertmanager.yourdomain.com` (if enabled)
 
 **Note**: The tunnel token contains all routing configuration. Routes are managed in the Cloudflare dashboard, not in the Helm chart.
+
+### Cloudflare Tunnel Namespace
+
+The Cloudflare Tunnel is deployed in the `cloudflare` namespace (separate from the `observability` namespace) for better organization.
+
+Check tunnel status:
+
+```bash
+kubectl get pods -n cloudflare
+kubectl logs -n cloudflare -l app=cloudflared
+```

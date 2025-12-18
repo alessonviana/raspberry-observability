@@ -25,4 +25,8 @@ dependencies:
     version: 0.1.0
     repository: https://grafana.github.io/helm-charts
     condition: alloy.enabled
+  - name: metallb
+    version: 0.13.12
+    repository: https://metallb.github.io/metallb
+    condition: metallb.enabled
 

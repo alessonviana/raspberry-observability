@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloudflared
-  namespace: {{ .Values.namespace | default "observability" }}
+  namespace: {{ .Values.cloudflared.namespace }}
   labels:
     app: cloudflared
 spec:
