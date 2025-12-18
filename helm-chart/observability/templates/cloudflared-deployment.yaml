@@ -1,0 +1,60 @@
+{{- if .Values.cloudflared.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: {{ .Values.namespace | default "observability" }}
+  labels:
+    app: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+      - name: cloudflared
+        image: {{ .Values.cloudflared.image.repository }}:{{ .Values.cloudflared.image.tag }}
+        imagePullPolicy: {{ .Values.cloudflared.image.pullPolicy }}
+        command:
+        - /usr/local/bin/cloudflared
+        args:
+        - tunnel
+        - --no-autoupdate
+        - run
+        - --token
+        - $(CLOUDFLARED_TOKEN)
+        env:
+        - name: CLOUDFLARED_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloudflared-token
+              key: token
+        resources:
+          {{- toYaml .Values.cloudflared.resources | nindent 10 }}
+        livenessProbe:
+          exec:
+            command:
+            - /usr/local/bin/cloudflared
+            - tunnel
+            - info
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /usr/local/bin/cloudflared
+            - tunnel
+            - info
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+{{- end }}
+

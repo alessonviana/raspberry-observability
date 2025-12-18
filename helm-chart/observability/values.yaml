@@ -1,0 +1,250 @@
+# Global settings
+namespace: observability
+
+# Grafana configuration
+grafana:
+  enabled: true
+  adminUser: admin
+  adminPassword: "ChangeMe-StrongPassword"
+
+  persistence:
+    enabled: true
+    size: 5Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://observability-kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090
+          isDefault: true
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki.observability.svc.cluster.local:3100
+        - name: Tempo
+          type: tempo
+          access: proxy
+          url: http://tempo.observability.svc.cluster.local:3100
+          jsonData:
+            tracesToLogsV2:
+              datasourceUid: Loki
+            tracesToMetrics:
+              datasourceUid: Prometheus
+
+# Prometheus configuration (kube-prometheus-stack)
+prometheus:
+  enabled: true
+  
+  alertmanager:
+    enabled: true
+    persistentVolume:
+      enabled: true
+      size: 2Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 512Mi
+
+  prometheus:
+    retention: "7d"
+    prometheusSpec:
+      retention: "7d"
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 20Gi
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          memory: 2Gi
+      serviceMonitorSelectorNilUsesHelmValues: false
+      podMonitorSelectorNilUsesHelmValues: false
+      ruleSelectorNilUsesHelmValues: false
+
+  # On Raspberry, reducing scope helps a lot
+  kubeStateMetrics:
+    enabled: true
+  nodeExporter:
+    enabled: true
+
+  prometheusOperator:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
+
+  # Global scrape config
+  defaultRules:
+    create: true
+  global:
+    scrape_interval: 60s
+    evaluation_interval: 60s
+
+  pushgateway:
+    enabled: false
+
+# Loki configuration
+loki:
+  enabled: true
+  deploymentMode: SingleBinary
+
+  loki:
+    auth_enabled: false
+    commonConfig:
+      replication_factor: 1
+    storage:
+      type: filesystem
+    schemaConfig:
+      configs:
+        - from: "2024-01-01"
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: loki_index_
+            period: 24h
+
+    limits_config:
+      retention_period: 168h   # 7 days
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+
+  singleBinary:
+    replicas: 1
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+
+  # Disable distributed modes (lighter for Raspberry)
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  backend:
+    replicas: 0
+
+# Tempo configuration
+tempo:
+  enabled: true
+  tempo:
+    retention: 168h  # 7 days
+
+  persistence:
+    enabled: true
+    size: 10Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
+  # Simple mode for homelab
+  replicas: 1
+
+# Alloy configuration
+alloy:
+  enabled: true
+  alloy:
+    configMap:
+      create: true
+      content: |
+        logging {
+          level = "info"
+        }
+
+        # ---- LOGS (Kubernetes -> Loki) ----
+        discovery.kubernetes "pods" {
+          role = "pod"
+        }
+
+        loki.source.kubernetes "pod_logs" {
+          targets    = discovery.kubernetes.pods.targets
+          forward_to = [loki.write.loki.receiver]
+        }
+
+        loki.write "loki" {
+          endpoint {
+            url = "http://loki.observability.svc.cluster.local:3100/loki/api/v1/push"
+          }
+        }
+
+        # ---- TRACES (OTLP -> Tempo) ----
+        otelcol.receiver.otlp "otlp" {
+          grpc { endpoint = "0.0.0.0:4317" }
+          http { endpoint = "0.0.0.0:4318" }
+          output {
+            traces = [otelcol.exporter.otlp.tempo.input]
+          }
+        }
+
+        otelcol.exporter.otlp "tempo" {
+          client {
+            endpoint = "tempo.observability.svc.cluster.local:4317"
+            tls {
+              insecure = true
+            }
+          }
+        }
+
+  controller:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+
+  # Needs to run on nodes to read logs
+  daemonset:
+    enabled: true
+
+# Cloudflare Tunnel configuration
+cloudflared:
+  enabled: false
+  # Cloudflare Tunnel token
+  # Get your token from: https://one.dash.cloudflare.com/
+  # The token contains all tunnel configuration including routes
+  token: "YOUR_CLOUDFLARE_TUNNEL_TOKEN_HERE"
+  
+  # Image configuration
+  image:
+    repository: cloudflare/cloudflared
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  # Resources
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
