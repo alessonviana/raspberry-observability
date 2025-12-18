@@ -205,6 +205,37 @@ kubectl get ipaddresspool -n metallb
 kubectl get l2advertisement -n metallb
 ```
 
+### Manual MetalLB Configuration (if needed)
+
+If the automatic configuration via Helm hooks doesn't work, you can manually configure MetalLB:
+
+```bash
+# Option 1: Use the provided script
+cd helm-chart/observability
+./scripts/configure-metallb.sh
+
+# Option 2: Manual configuration
+kubectl apply -f - <<EOF
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-pool
+  namespace: metallb
+spec:
+  addresses:
+  - 192.168.2.100-192.168.2.250
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: default-l2advertisement
+  namespace: metallb
+spec:
+  ipAddressPools:
+  - default-pool
+EOF
+```
+
 ### Using LoadBalancer Services
 
 To expose a service via MetalLB, set its type to `LoadBalancer`:

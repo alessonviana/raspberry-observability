@@ -243,8 +243,8 @@ metallb:
     controllerIP: "192.168.2.110"
   
   # MetalLB chart values (passed to subchart)
-  # Note: MetalLB v0.13+ uses CRDs for configuration
-  # We'll create IPAddressPool and L2Advertisement via templates
+  # The IPAddressPool and L2Advertisement are created via Helm hooks
+  # after the MetalLB chart installs the CRDs
 
 # Cloudflare Tunnel configuration
 cloudflared:
