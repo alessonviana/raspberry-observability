@@ -6,6 +6,8 @@ This Helm chart deploys a complete observability stack optimized for Raspberry P
 - **Loki**: Log aggregation
 - **Tempo**: Distributed tracing
 - **Alloy**: OpenTelemetry collector for logs and traces
+- **MetalLB**: Load balancer for bare metal Kubernetes clusters
+- **Cloudflare Tunnel**: Secure external access (optional)
 
 ## Prerequisites
 
@@ -23,6 +25,7 @@ Add the Helm repositories for all dependencies:
 ```bash
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add metallb https://metallb.github.io/metallb
 helm repo update
 ```
 
@@ -194,6 +197,13 @@ kubectl delete pvc --all -n observability
 #### Alloy
 - Runs as DaemonSet to collect logs from all nodes
 - Configured to forward logs to Loki and traces to Tempo
+
+#### MetalLB
+- Provides LoadBalancer services for bare metal Kubernetes
+- Configured for local network: 192.168.2.0/24
+- IP range: 192.168.2.100 - 192.168.2.250
+- Deployed in `metallb` namespace
+- Uses Layer 2 mode for simplicity
 
 #### Cloudflare Tunnel
 - Optional component to expose services externally

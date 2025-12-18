@@ -225,9 +225,33 @@ alloy:
   daemonset:
     enabled: true
 
+# MetalLB configuration
+metallb:
+  enabled: true
+  
+  # MetalLB namespace
+  namespace: metallb
+  
+  # Local network configuration
+  network:
+    subnet: "192.168.2.0/24"
+    # IP range for LoadBalancer services
+    ipRange:
+      start: "192.168.2.100"
+      end: "192.168.2.250"
+    # Specific IP for MetalLB controller (if needed)
+    controllerIP: "192.168.2.110"
+  
+  # MetalLB chart values (passed to subchart)
+  # Note: MetalLB v0.13+ uses CRDs for configuration
+  # We'll create IPAddressPool and L2Advertisement via templates
+
 # Cloudflare Tunnel configuration
 cloudflared:
   enabled: false
+  # Cloudflare Tunnel namespace
+  namespace: cloudflare
+  
   # Cloudflare Tunnel token
   # Get your token from: https://one.dash.cloudflare.com/
   # The token contains all tunnel configuration including routes

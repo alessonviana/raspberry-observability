@@ -1,0 +1,13 @@
+{{- if .Values.metallb.enabled }}
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-pool
+  namespace: {{ .Values.metallb.namespace }}
+  labels:
+    app.kubernetes.io/name: metallb
+spec:
+  addresses:
+  - {{ .Values.metallb.network.ipRange.start }}-{{ .Values.metallb.network.ipRange.end }}
+{{- end }}
+
