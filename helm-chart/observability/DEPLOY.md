@@ -46,8 +46,8 @@ Search for `adminPassword` and change from `"ChangeMe-StrongPassword"` to a secu
 ### 6. Install the Chart
 
 ```bash
-helm install observability . \
-  --namespace observability \
+helm install monitoring . \
+  --namespace monitoring \
   --create-namespace \
   --wait
 ```
@@ -58,13 +58,13 @@ The `--wait` flag waits for all resources to be ready.
 
 ```bash
 # View pods
-kubectl get pods -n observability
+kubectl get pods -n monitoring
 
 # View services
-kubectl get svc -n observability
+kubectl get svc -n monitoring
 
 # View PVCs (persistent volumes)
-kubectl get pvc -n observability
+kubectl get pvc -n monitoring
 ```
 
 ### 8. Access Grafana
@@ -72,13 +72,13 @@ kubectl get pvc -n observability
 #### Get admin password:
 
 ```bash
-kubectl get secret --namespace observability observability-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+kubectl get secret --namespace monitoring monitoring-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
 #### Port-forward for local access:
 
 ```bash
-kubectl port-forward --namespace observability svc/observability-grafana 3000:80
+kubectl port-forward --namespace monitoring svc/monitoring-grafana 3000:80
 ```
 
 Access: http://localhost:3000
@@ -88,7 +88,7 @@ Access: http://localhost:3000
 ### 9. Access Prometheus
 
 ```bash
-kubectl port-forward --namespace observability svc/observability-kube-prometheus-stack-prometheus 9090:9090
+kubectl port-forward --namespace monitoring svc/monitoring-kube-prometheus-stack-prometheus 9090:9090
 ```
 
 Access: http://localhost:9090
@@ -99,19 +99,19 @@ Access: http://localhost:9090
 
 ```bash
 # Grafana
-kubectl logs -n observability -l app.kubernetes.io/name=grafana
+kubectl logs -n monitoring -l app.kubernetes.io/name=grafana
 
 # Prometheus
-kubectl logs -n observability -l app.kubernetes.io/name=prometheus
+kubectl logs -n monitoring -l app.kubernetes.io/name=prometheus
 
 # Loki
-kubectl logs -n observability -l app.kubernetes.io/name=loki
+kubectl logs -n monitoring -l app.kubernetes.io/name=loki
 
 # Tempo
-kubectl logs -n observability -l app.kubernetes.io/name=tempo
+kubectl logs -n monitoring -l app.kubernetes.io/name=tempo
 
 # Alloy
-kubectl logs -n observability -l app.kubernetes.io/name=alloy
+kubectl logs -n monitoring -l app.kubernetes.io/name=alloy
 ```
 
 ### Update the Chart
@@ -119,21 +119,21 @@ kubectl logs -n observability -l app.kubernetes.io/name=alloy
 ```bash
 cd helm-chart/observability
 helm dependency update
-helm upgrade observability . \
-  --namespace observability \
+helm upgrade monitoring . \
+  --namespace monitoring \
   --wait
 ```
 
 ### Uninstall
 
 ```bash
-helm uninstall observability --namespace observability
+helm uninstall monitoring --namespace monitoring
 ```
 
 **Warning**: Persistent Volumes are not automatically removed. To remove them:
 
 ```bash
-kubectl delete pvc --all -n observability
+kubectl delete pvc --all -n monitoring
 ```
 
 ## Troubleshooting
@@ -142,10 +142,10 @@ kubectl delete pvc --all -n observability
 
 ```bash
 # View detailed status
-kubectl describe pod <pod-name> -n observability
+kubectl describe pod <pod-name> -n monitoring
 
 # View namespace events
-kubectl get events -n observability --sort-by='.lastTimestamp'
+kubectl get events -n monitoring --sort-by='.lastTimestamp'
 ```
 
 ### Resource issues
@@ -156,19 +156,19 @@ If pods are being evicted, reduce resource limits in `values.yaml`.
 
 ```bash
 # View PVCs
-kubectl get pvc -n observability
+kubectl get pvc -n monitoring
 
 # View PVC details
-kubectl describe pvc <pvc-name> -n observability
+kubectl describe pvc <pvc-name> -n monitoring
 ```
 
 ## Service Structure
 
-After deployment, the following services will be available in the `observability` namespace:
+After deployment, the following services will be available in the `monitoring` namespace:
 
-- `observability-grafana` (port 80)
-- `observability-kube-prometheus-stack-prometheus` (port 9090)
-- `observability-kube-prometheus-stack-alertmanager` (port 9093)
+- `monitoring-grafana` (port 80)
+- `monitoring-kube-prometheus-stack-prometheus` (port 9090)
+- `monitoring-kube-prometheus-stack-alertmanager` (port 9093)
 - `loki` (port 3100)
 - `tempo` (ports 3100, 4317, 4318)
 - `alloy` (ports 4317, 4318)
@@ -278,22 +278,22 @@ cloudflared:
 
 In the Cloudflare dashboard, configure public hostnames for your services:
 
-- **Grafana**: `grafana.yourdomain.com` → `http://observability-grafana.observability.svc.cluster.local:80`
-- **Prometheus** (optional): `prometheus.yourdomain.com` → `http://observability-kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090`
-- **Alertmanager** (optional): `alertmanager.yourdomain.com` → `http://observability-kube-prometheus-stack-alertmanager.observability.svc.cluster.local:9093`
+- **Grafana**: `grafana.yourdomain.com` → `http://monitoring-grafana.monitoring.svc.cluster.local:80`
+- **Prometheus** (optional): `prometheus.yourdomain.com` → `http://monitoring-kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090`
+- **Alertmanager** (optional): `alertmanager.yourdomain.com` → `http://monitoring-kube-prometheus-stack-alertmanager.monitoring.svc.cluster.local:9093`
 
 ### 4. Deploy or Update
 
 ```bash
 # If deploying for the first time
-helm install observability . \
-  --namespace observability \
+helm install monitoring . \
+  --namespace monitoring \
   --create-namespace \
   --wait
 
 # If updating existing deployment
-helm upgrade observability . \
-  --namespace observability \
+helm upgrade monitoring . \
+  --namespace monitoring \
   --wait
 ```
 
@@ -302,8 +302,8 @@ helm upgrade observability . \
 Check if the tunnel is running:
 
 ```bash
-kubectl get pods -n observability -l app=cloudflared
-kubectl logs -n observability -l app=cloudflared
+kubectl get pods -n monitoring -l app=cloudflared
+kubectl logs -n cloudflare -l app=cloudflared
 ```
 
 ### 6. Access Services
@@ -317,7 +317,7 @@ Once configured, you can access your services via the public hostnames configure
 
 ### Cloudflare Tunnel Namespace
 
-The Cloudflare Tunnel is deployed in the `cloudflare` namespace (separate from the `observability` namespace) for better organization.
+The Cloudflare Tunnel is deployed in the `cloudflare` namespace (separate from the `monitoring` namespace) for better organization.
 
 Check tunnel status:
 

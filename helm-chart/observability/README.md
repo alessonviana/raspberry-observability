@@ -61,11 +61,11 @@ grafana:
 
 ### 4. Deploy the Chart
 
-Deploy the observability stack to the `observability` namespace:
+Deploy the observability stack to the `monitoring` namespace:
 
 ```bash
-helm install observability . \
-  --namespace observability \
+helm install monitoring . \
+  --namespace monitoring \
   --create-namespace \
   --wait
 ```
@@ -74,15 +74,15 @@ Or if you prefer to see what will be deployed first:
 
 ```bash
 # Dry-run to see what will be deployed
-helm install observability . \
-  --namespace observability \
+helm install monitoring . \
+  --namespace monitoring \
   --create-namespace \
   --dry-run \
   --debug
 
 # Then deploy for real
-helm install observability . \
-  --namespace observability \
+helm install monitoring . \
+  --namespace monitoring \
   --create-namespace \
   --wait
 ```
@@ -94,7 +94,7 @@ The `--wait` flag will wait for all resources to be ready before completing.
 Check that all pods are running:
 
 ```bash
-kubectl get pods -n observability
+kubectl get pods -n monitoring
 ```
 
 You should see pods for:
@@ -107,7 +107,7 @@ You should see pods for:
 Check services:
 
 ```bash
-kubectl get svc -n observability
+kubectl get svc -n monitoring
 ```
 
 ### 6. Access Grafana
@@ -115,13 +115,13 @@ kubectl get svc -n observability
 Get the Grafana admin password:
 
 ```bash
-kubectl get secret --namespace observability observability-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+kubectl get secret --namespace monitoring monitoring-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
 Port-forward to access Grafana locally:
 
 ```bash
-kubectl port-forward --namespace observability svc/observability-grafana 3000:80
+kubectl port-forward --namespace monitoring svc/monitoring-grafana 3000:80
 ```
 
 Then open http://localhost:3000 in your browser and login with:
@@ -133,7 +133,7 @@ Then open http://localhost:3000 in your browser and login with:
 Port-forward to access Prometheus:
 
 ```bash
-kubectl port-forward --namespace observability svc/observability-kube-prometheus-stack-prometheus 9090:9090
+kubectl port-forward --namespace monitoring svc/monitoring-kube-prometheus-stack-prometheus 9090:9090
 ```
 
 Then open http://localhost:9090 in your browser.
@@ -145,8 +145,8 @@ To upgrade the chart with new values:
 ```bash
 cd helm-chart/observability
 helm dependency update
-helm upgrade observability . \
-  --namespace observability \
+helm upgrade monitoring . \
+  --namespace monitoring \
   --wait
 ```
 
@@ -155,20 +155,20 @@ helm upgrade observability . \
 To remove the observability stack:
 
 ```bash
-helm uninstall observability --namespace observability
+helm uninstall monitoring --namespace monitoring
 ```
 
 **Note**: This will remove all resources but persistent volumes will remain. To also delete persistent volumes, you'll need to manually delete the PVCs:
 
 ```bash
-kubectl delete pvc --all -n observability
+kubectl delete pvc --all -n monitoring
 ```
 
 ## Configuration
 
 ### Key Configuration Options
 
-- **Namespace**: Default is `observability` (configurable in values.yaml)
+- **Namespace**: Default is `monitoring` (configurable in values.yaml)
 - **Retention**: 7 days for Prometheus, Loki, and Tempo
 - **Storage**: Filesystem-based storage (suitable for single-node setups)
 - **Resources**: Optimized for Raspberry Pi with low resource limits
@@ -232,7 +232,7 @@ To enable external access via Cloudflare Tunnel:
 
 4. **Deploy:**
    ```bash
-   helm upgrade observability . --namespace observability
+   helm upgrade monitoring . --namespace monitoring
    ```
 
 The tunnel will expose your services through Cloudflare's network, providing secure external access without opening ports on your firewall.
@@ -244,9 +244,9 @@ The tunnel will expose your services through Cloudflare's network, providing sec
 Check pod status and logs:
 
 ```bash
-kubectl get pods -n observability
-kubectl describe pod <pod-name> -n observability
-kubectl logs <pod-name> -n observability
+kubectl get pods -n monitoring
+kubectl describe pod <pod-name> -n monitoring
+kubectl logs <pod-name> -n monitoring
 ```
 
 ### Storage issues
@@ -254,8 +254,8 @@ kubectl logs <pod-name> -n observability
 Check persistent volume claims:
 
 ```bash
-kubectl get pvc -n observability
-kubectl describe pvc <pvc-name> -n observability
+kubectl get pvc -n monitoring
+kubectl describe pvc <pvc-name> -n monitoring
 ```
 
 ### Resource constraints
