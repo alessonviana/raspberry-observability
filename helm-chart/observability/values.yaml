@@ -18,28 +18,11 @@ grafana:
     limits:
       memory: 1Gi
 
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: Prometheus
-          type: prometheus
-          access: proxy
-          url: http://monitoring-kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
-          isDefault: true
-        - name: Loki
-          type: loki
-          access: proxy
-          url: http://loki.monitoring.svc.cluster.local:3100
-        - name: Tempo
-          type: tempo
-          access: proxy
-          url: http://tempo.monitoring.svc.cluster.local:3100
-          jsonData:
-            tracesToLogsV2:
-              datasourceUid: Loki
-            tracesToMetrics:
-              datasourceUid: Prometheus
+  datasources: {}
+    # Note: datasources will need to be configured manually in Grafana UI
+    # Prometheus: http://monitoring-kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+    # Loki: http://loki.monitoring.svc.cluster.local:3100
+    # Tempo: http://tempo.monitoring.svc.cluster.local:3100
 
 # Prometheus configuration (kube-prometheus-stack)
 prometheus:
@@ -179,7 +162,6 @@ alloy:
           level = "info"
         }
 
-        # ---- LOGS (Kubernetes -> Loki) ----
         discovery.kubernetes "pods" {
           role = "pod"
         }
@@ -195,7 +177,6 @@ alloy:
           }
         }
 
-        # ---- TRACES (OTLP -> Tempo) ----
         otelcol.receiver.otlp "otlp" {
           grpc { endpoint = "0.0.0.0:4317" }
           http { endpoint = "0.0.0.0:4318" }
@@ -228,19 +209,19 @@ alloy:
 # MetalLB configuration
 metallb:
   enabled: true
-  
-  # MetalLB namespace
-  namespace: metallb
+
+  # MetalLB namespace (separate from monitoring)
+  namespace: metallb-system
   
   # Local network configuration
   network:
-    subnet: "192.168.2.0/24"
+    subnet: "192.168.1.0/24"
     # IP range for LoadBalancer services
     ipRange:
-      start: "192.168.2.100"
-      end: "192.168.2.250"
+      start: "192.168.1.100"
+      end: "192.168.1.250"
     # Specific IP for MetalLB controller (if needed)
-    controllerIP: "192.168.2.110"
+    controllerIP: "192.168.1.110"
   
   # MetalLB chart values (passed to subchart)
   # The IPAddressPool and L2Advertisement are created via Helm hooks
@@ -248,10 +229,10 @@ metallb:
 
 # Cloudflare Tunnel configuration
 cloudflared:
-  enabled: false
+  enabled: true
   # Cloudflare Tunnel namespace
   namespace: cloudflare
-  
+
   # Cloudflare Tunnel token
   # Get your token from: https://one.dash.cloudflare.com/
   # The token contains all tunnel configuration including routes
