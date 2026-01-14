@@ -181,10 +181,9 @@ MetalLB is automatically deployed and configured to provide LoadBalancer service
 
 ### Network Configuration
 
-- **Local Network**: 192.168.2.0/24
-- **IP Range**: 192.168.2.100 - 192.168.2.250
-- **Controller IP**: 192.168.2.110
-- **Namespace**: `metallb`
+- **Local Network**: 192.168.1.0/24
+- **IP Range**: 192.168.1.100 - 192.168.1.250
+- **Namespace**: `monitoring` (same as the release)
 
 ### How It Works
 
@@ -196,13 +195,13 @@ After deployment, check MetalLB status:
 
 ```bash
 # Check MetalLB pods
-kubectl get pods -n metallb
+kubectl get pods -n monitoring -l app.kubernetes.io/name=metallb
 
 # Check IPAddressPool
-kubectl get ipaddresspool -n metallb
+kubectl get ipaddresspool -n monitoring
 
 # Check L2Advertisement
-kubectl get l2advertisement -n metallb
+kubectl get l2advertisement -n monitoring
 ```
 
 ### Manual MetalLB Configuration (if needed)
@@ -210,26 +209,21 @@ kubectl get l2advertisement -n metallb
 If the automatic configuration via Helm hooks doesn't work, you can manually configure MetalLB:
 
 ```bash
-# Option 1: Use the provided script
-cd helm-chart/observability
-./scripts/configure-metallb.sh
-
-# Option 2: Manual configuration
 kubectl apply -f - <<EOF
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
   name: default-pool
-  namespace: metallb
+  namespace: monitoring
 spec:
   addresses:
-  - 192.168.2.100-192.168.2.250
+  - 192.168.1.100-192.168.1.250
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
 metadata:
   name: default-l2advertisement
-  namespace: metallb
+  namespace: monitoring
 spec:
   ipAddressPools:
   - default-pool

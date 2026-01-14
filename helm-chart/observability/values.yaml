@@ -207,12 +207,10 @@ alloy:
     enabled: true
 
 # MetalLB configuration
+# Note: MetalLB is deployed in the same namespace as the release (monitoring)
 metallb:
   enabled: true
 
-  # MetalLB namespace (separate from monitoring)
-  namespace: metallb-system
-  
   # Local network configuration
   network:
     subnet: "192.168.1.0/24"
@@ -220,12 +218,6 @@ metallb:
     ipRange:
       start: "192.168.1.100"
       end: "192.168.1.250"
-    # Specific IP for MetalLB controller (if needed)
-    controllerIP: "192.168.1.110"
-  
-  # MetalLB chart values (passed to subchart)
-  # The IPAddressPool and L2Advertisement are created via Helm hooks
-  # after the MetalLB chart installs the CRDs
 
 # Cloudflare Tunnel configuration
 cloudflared:
