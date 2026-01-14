@@ -1,0 +1,57 @@
+# Environment files
+.env
+.env.*
+*.env
+
+# Credentials and secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+credentials.json
+secrets.yaml
+secrets.yml
+*-secret.yaml
+!templates/*-secret.yaml
+
+# Local configuration overrides
+values-local.yaml
+values-override.yaml
+values.local.yaml
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak
+*-backup/
+
+# Helm artifacts
+*.tgz.bak
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Log files
+*.log
+logs/
+
+# Test coverage
+coverage/
+.coverage
+
+# Node modules (if any scripts use node)
+node_modules/
