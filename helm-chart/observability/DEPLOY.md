@@ -177,13 +177,48 @@ All services are configured for internal communication via Kubernetes DNS.
 
 ## MetalLB Configuration
 
-MetalLB is automatically deployed and configured to provide LoadBalancer services on your local network.
+MetalLB is installed separately in the `metallb-system` namespace to provide LoadBalancer services on your local network.
 
 ### Network Configuration
 
 - **Local Network**: 192.168.1.0/24
-- **IP Range**: 192.168.1.100 - 192.168.1.250
-- **Namespace**: `monitoring` (same as the release)
+- **IP Range**: 192.168.1.200 - 192.168.1.220
+- **Namespace**: `metallb-system`
+
+### Install MetalLB
+
+MetalLB must be installed separately before deploying the observability stack:
+
+```bash
+# Add MetalLB Helm repository
+helm repo add metallb https://metallb.github.io/metallb
+helm repo update
+
+# Create namespace and install MetalLB
+kubectl create namespace metallb-system
+helm install metallb metallb/metallb --namespace metallb-system --wait
+
+# Apply IP configuration
+kubectl apply -f - <<EOF
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.1.200-192.168.1.220
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: default-l2advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - default-pool
+EOF
+```
 
 ### How It Works
 
@@ -195,39 +230,16 @@ After deployment, check MetalLB status:
 
 ```bash
 # Check MetalLB pods
-kubectl get pods -n monitoring -l app.kubernetes.io/name=metallb
+kubectl get pods -n metallb-system
 
 # Check IPAddressPool
-kubectl get ipaddresspool -n monitoring
+kubectl get ipaddresspool -n metallb-system
 
 # Check L2Advertisement
-kubectl get l2advertisement -n monitoring
-```
+kubectl get l2advertisement -n metallb-system
 
-### Manual MetalLB Configuration (if needed)
-
-If the automatic configuration via Helm hooks doesn't work, you can manually configure MetalLB:
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-  name: default-pool
-  namespace: monitoring
-spec:
-  addresses:
-  - 192.168.1.100-192.168.1.250
----
-apiVersion: metallb.io/v1beta1
-kind: L2Advertisement
-metadata:
-  name: default-l2advertisement
-  namespace: monitoring
-spec:
-  ipAddressPools:
-  - default-pool
-EOF
+# Check if services got external IPs
+kubectl get svc -A | grep LoadBalancer
 ```
 
 ### Using LoadBalancer Services
@@ -245,7 +257,7 @@ spec:
   - port: 80
 ```
 
-MetalLB will automatically assign an IP from the configured range (192.168.2.100-250).
+MetalLB will automatically assign an IP from the configured range (192.168.1.200-220).
 
 ## Cloudflare Tunnel Setup (Optional)
 

@@ -207,17 +207,20 @@ alloy:
     enabled: true
 
 # MetalLB configuration
-# Note: MetalLB is deployed in the same namespace as the release (monitoring)
+# MetalLB is installed separately in its own namespace
 metallb:
   enabled: true
+
+  # MetalLB namespace
+  namespace: metallb-system
 
   # Local network configuration
   network:
     subnet: "192.168.1.0/24"
     # IP range for LoadBalancer services
     ipRange:
-      start: "192.168.1.100"
-      end: "192.168.1.250"
+      start: "192.168.1.200"
+      end: "192.168.1.220"
 
 # Cloudflare Tunnel configuration
 cloudflared:
