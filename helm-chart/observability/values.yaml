@@ -61,6 +61,8 @@ prometheus:
     retention: "7d"
     prometheusSpec:
       retention: "7d"
+      # Habilita receber métricas via remote write (OTLP -> Alloy -> Prometheus)
+      enableRemoteWriteReceiver: true
       storageSpec:
         volumeClaimTemplate:
           spec:
@@ -168,10 +170,20 @@ tempo:
   # Simple mode for homelab
   replicas: 1
 
-# Alloy configuration
+# Alloy configuration (coletor OTLP + logs + traces)
 alloy:
   enabled: true
   alloy:
+    # Portas OTLP para receber métricas e traces de sistemas externos
+    extraPorts:
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP
     configMap:
       create: true
       content: |
@@ -195,15 +207,30 @@ alloy:
           }
         }
 
-        # ---- TRACES (OTLP -> Tempo) ----
+        # ---- OTLP (Métricas + Traces) ----
+        # Coletor OTLP: recebe métricas e traces via gRPC (4317) e HTTP (4318)
         otelcol.receiver.otlp "otlp" {
           grpc { endpoint = "0.0.0.0:4317" }
           http { endpoint = "0.0.0.0:4318" }
           output {
-            traces = [otelcol.exporter.otlp.tempo.input]
+            metrics = [otelcol.exporter.prometheus.otlp_metrics.input]
+            traces  = [otelcol.exporter.otlp.tempo.input]
           }
         }
 
+        # Métricas OTLP -> formato Prometheus -> remote write
+        otelcol.exporter.prometheus "otlp_metrics" {
+          forward_to = [prometheus.remote_write.prometheus.receiver]
+        }
+
+        # URL do Prometheus remote write (ajuste se usar outro release name)
+        prometheus.remote_write "prometheus" {
+          endpoint {
+            url = "http://monitoring-kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+          }
+        }
+
+        # Traces OTLP -> Tempo
         otelcol.exporter.otlp "tempo" {
           client {
             endpoint = "tempo.monitoring.svc.cluster.local:4317"
@@ -224,6 +251,14 @@ alloy:
   # Needs to run on nodes to read logs
   daemonset:
     enabled: true
+
+  # Serviço LoadBalancer para expor o coletor OTLP fora do cluster
+  service:
+    type: LoadBalancer
+    # Com MetalLB, um IP do pool (192.168.2.100-250) será atribuído.
+    # Opcional: IP fixo para endpoint estável no OTEL do sistema monitorado
+    # annotations:
+    #   metallb.universe.tf/loadBalancerIP: "192.168.2.111"
 
 # MetalLB configuration
 metallb:

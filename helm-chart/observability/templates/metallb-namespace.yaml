@@ -6,5 +6,9 @@ metadata:
   labels:
     name: {{ .Values.metallb.namespace }}
     app.kubernetes.io/name: metallb
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
 {{- end }}
 

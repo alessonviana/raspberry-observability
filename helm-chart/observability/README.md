@@ -196,7 +196,32 @@ kubectl delete pvc --all -n monitoring
 
 #### Alloy
 - Runs as DaemonSet to collect logs from all nodes
-- Configured to forward logs to Loki and traces to Tempo
+- Configured to forward logs to Loki, traces to Tempo e **métricas OTLP** ao Prometheus
+
+#### Coletor OTLP (OpenTelemetry)
+O Alloy atua como **coletor OTLP**: aplicações instrumentadas com OpenTelemetry podem enviar métricas e traces diretamente para o stack. O serviço do Alloy é exposto como **LoadBalancer** para acesso de sistemas **fora do cluster**.
+
+**Endpoints externos (para configurar no OTEL do sistema monitorado):**
+- **gRPC:** `<IP_DO_LOADBALANCER>:4317`
+- **HTTP:** `http://<IP_DO_LOADBALANCER>:4318`
+
+O IP do LoadBalancer é atribuído pelo MetalLB (faixa 192.168.2.100–192.168.2.250). Para descobrir o IP após o deploy:
+```bash
+kubectl get svc -n monitoring monitoring-alloy -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+```
+
+Para um **endpoint estável**, defina um IP fixo em `values.yaml` em `alloy.service.annotations` com `metallb.universe.tf/loadBalancerIP: "192.168.2.111"` (escolha um IP livre na sua rede).
+
+**Exemplo de configuração no sistema monitorado (variáveis de ambiente):**
+```bash
+# gRPC (recomendado) — use host:port sem esquema
+OTEL_EXPORTER_OTLP_ENDPOINT=<IP_LOADBALANCER>:4317
+
+# ou HTTP
+OTEL_EXPORTER_OTLP_ENDPOINT=http://<IP_LOADBALANCER>:4318
+```
+
+**Fluxo:** Métricas OTLP → Alloy → Prometheus → Grafana | Traces OTLP → Alloy → Tempo → Grafana
 
 #### MetalLB
 - Provides LoadBalancer services for bare metal Kubernetes
@@ -265,22 +290,21 @@ If pods are being evicted or not starting due to resource constraints, reduce re
 ## Architecture
 
 ```
-┌─────────┐     ┌──────────┐     ┌──────┐
-│ Alloy   │────▶│  Loki    │────▶│Grafana│
-│(Daemon) │     │          │     │      │
-└─────────┘     └──────────┘     └──────┘
-     │
-     │ Traces
-     ▼
-┌─────────┐     ┌──────────┐
-│ Tempo  │────▶│  Grafana │
-│        │     │          │
-└────────┘     └──────────┘
-
-┌──────────────┐     ┌──────────┐
-│ Prometheus   │────▶│  Grafana │
-│              │     │          │
-└──────────────┘     └──────────┘
+                    ┌──────────────┐     ┌──────────┐
+                    │ Prometheus   │────▶│  Grafana │
+                    │              │     │          │
+                    └──────▲───────┘     └──────────┘
+                           │ remote write
+         OTLP (gRPC/HTTP)  │
+┌──────────────┐     ┌─────┴─────┐     ┌──────────┐
+│ Sua aplicação│────▶│   Alloy   │────▶│  Loki    │────▶ Grafana
+│ (OpenTelemetry)     │ (Daemon)  │     │          │
+└──────────────┘     └─────┬─────┘     └──────────┘
+                           │ Traces
+                           ▼
+                    ┌─────────┐     ┌──────────┐
+                    │ Tempo    │────▶│  Grafana │
+                    └─────────┘     └──────────┘
 ```
 
 ## License
